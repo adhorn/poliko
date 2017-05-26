@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-BUCKET_NAME=poliko2.adhorn.me
+BUCKET_NAME=YOUR_BUCKET_NAME
 # if you want to use route53, make sure to read 
 # http://docs.aws.amazon.com/AmazonS3/latest/dev/website-hosting-custom-domain-walkthrough.html
 REGION=us-east-1
@@ -49,5 +49,5 @@ aws s3 sync . s3://$BUCKET_NAME --exclude "*.sh" --exclude ".git/*" --exclude "R
 create_website
 sync_files
 
-echo "Point your browser to the link bellow"
+echo "Point your browser to the link"
 echo http://$BUCKET_NAME.s3-website-$REGION.amazonaws.com
