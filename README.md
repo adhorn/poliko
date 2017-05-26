@@ -27,7 +27,7 @@ The following will create a cognito federated identity pool allowing for unauthe
 
 ```
 sh setup_cognito.sh
-``
+```
 
 This will setup an S3 bucket, turn it into a website and give it the correct policy.
 
