@@ -1,5 +1,7 @@
 Code used for the demo http://poliko.adhorn.me
 
+![Poliko in action](https://pbs.twimg.com/media/DAgoPnHXkAAbJZF.jpg:large)
+
 This code uses Cognito to permit access to AI services (Rekognition and Polly)
 
 **What is Amazon Cognito?**
