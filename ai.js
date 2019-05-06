@@ -69,6 +69,10 @@ function toArrayBuffer(dataUrl) {
      });
  }
 
+ function sortByProperty(list, property) {
+    return list.slice().sort((a, b) => (a[property] > b[property]) ? 1 : -1)
+ }
+
  function generateSpeech() {
 
     var toSpeak = "";
@@ -82,7 +86,7 @@ function toArrayBuffer(dataUrl) {
         var face = faces.FaceDetails[i];
         
         text += "The " + ordinal_suffix_of(i+1) + " face is a ";
-        if(face["Emotions"]) text += face["Emotions"][0].Type.toLowerCase() + " ";
+        if(face["Emotions"]) text += sortByProperty(face.Emotions, 'Confidence').reverse()[0].Type.toLowerCase() + " ";
         if(face["Gender"]) text += face.Gender.Value.toLowerCase() + " ";
         else text += "person ";
         if(face["AgeRange"]) text += "between " + face.AgeRange.Low + " and " + face.AgeRange.High + " years old";
