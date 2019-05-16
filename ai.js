@@ -45,109 +45,112 @@ function toArrayBuffer(dataUrl) {
  var imageTag;
  var canvas;
 
- function detectLabels() {
+ async function detectLabels() {
 
-     var params = {
-         Image: {
-             Bytes: image
-         },
-         MaxLabels: 20,
-         MinConfidence: 50
-     };
+    return new Promise( (resolve, reject) => {
+        var params = {
+            Image: {
+                Bytes: image
+            },
+            MaxLabels: 20,
+            MinConfidence: 50
+        };
 
-     console.log(params);
+        console.log(params);
 
-     log("Detecting labels with Rekognition.\n");
+        log("Detecting labels with Rekognition.\n");
 
-     rekognition.detectLabels(params, function(err, data) {
-         if (err) console.log(err, err.stack); // an error occurred
-         else {
-             labels = data.Labels;
+        rekognition.detectLabels(params, function(err, data) {
+            if (err) console.log(err, err.stack); // an error occurred
+            else {
+                labels = data.Labels;
+                console.log(data);
 
-             console.log(data);
-
-
-             //Done with label output - detect faces
-             detectFaces();
-         }
-     });
+                //Done with label output - go on next phase
+                resolve();
+            }
+        });
+    }); // new Promise()
  }
 
- function generateSpeech() {
+ async function generateSpeech() {
 
-    var toSpeak = "";
+    return new Promise( (resolve, reject) => {
+    
+        var toSpeak = "";
 
-    log("Identified with greater than 50% confidence:\n");
+        log("Identified with greater than 50% confidence:\n");
 
 
-    var text = "Hi, my name is Polly. In this picture I see " + faces.FaceDetails.length + " face" + (faces.FaceDetails.length!=1?"s" : "") +". ";
+        var text = "Hi, my name is Polly. In this picture I see " + faces.FaceDetails.length + " face" + (faces.FaceDetails.length!=1?"s" : "") +". ";
 
-    for(var i=0; i<faces.FaceDetails.length; i++) {
-        var face = faces.FaceDetails[i];
-        
-        text += "The " + ordinal_suffix_of(i+1) + " face is a ";
-        if(face["Emotions"]) {
-            // filter the emotion with higher confidence 
-            emotion = face["Emotions"].reduce( (ac, cu ) => { if (ac && ac.Confidence < cu.Confidence) { ac = cu; } return ac; } );
-            text += emotion.Type.toLowerCase() + " ";
-        }
-        if(face["Gender"]) text += face.Gender.Value.toLowerCase() + " ";
-        else text += "person ";
-        if(face["AgeRange"]) text += "between " + face.AgeRange.Low + " and " + face.AgeRange.High + " years old";
+        for(var i=0; i<faces.FaceDetails.length; i++) {
+            var face = faces.FaceDetails[i];
+            
+            text += "The " + ordinal_suffix_of(i+1) + " face is a ";
+            if(face["Emotions"]) {
+                // filter the emotion with higher confidence 
+                emotion = face["Emotions"].reduce( (ac, cu ) => { if (ac && ac.Confidence < cu.Confidence) { ac = cu; } return ac; } );
+                text += emotion.Type.toLowerCase() + " ";
+            }
+            if(face["Gender"]) text += face.Gender.Value.toLowerCase() + " ";
+            else text += "person ";
+            if(face["AgeRange"]) text += "between " + face.AgeRange.Low + " and " + face.AgeRange.High + " years old";
 
-        text += ". ";
-    }
-
-    //log(text);
-
-    var SKIP = ["Human", "People", "Person", "Crowd"];
-
-    var toSpeak = "";
-    var nums = 4;
-    for(var i=0; i<labels.length; i++) {
-
-        log("   " + labels[i].Name + " (" + Math.round(labels[i].Confidence) + "%)\n");
-
-        if(SKIP.indexOf(labels[i].Name) > -1) continue;
-
-        if(nums>0) {
-            toSpeak += labels[i].Name.toLowerCase();
+            text += ". ";
         }
 
-        if(nums>2) toSpeak += ", ";
-        else if(nums==2) toSpeak += " and ";
+        //log(text);
 
-        nums--;
-    };
+        var SKIP = ["Human", "People", "Person", "Crowd"];
 
-     text += "I think I also see: " + toSpeak;
+        var toSpeak = "";
+        var nums = 4;
+        for(var i=0; i<labels.length; i++) {
 
-     log("Synthesizing speech for 4 first objects with Polly:\n    \"" + text + "\"\n");
+            log("   " + labels[i].Name + " (" + Math.round(labels[i].Confidence) + "%)\n");
 
-     var params = {
-         OutputFormat: "mp3",
-         SampleRate: "16000",
-         Text: text,
-         TextType: "text",
-         VoiceId: "Joanna"
-     };
+            if(SKIP.indexOf(labels[i].Name) > -1) continue;
 
-     polly.synthesizeSpeech(params, function(err, data) {
-         if (err) console.log(err, err.stack); // an error occurred
-         else {
-             console.log(data);           // successful response
-             audioCtx.decodeAudioData(data.AudioStream.buffer, function(buffer) {
-                 sound = buffer;
+            if(nums>0) {
+                toSpeak += labels[i].Name.toLowerCase();
+            }
 
-                 if (navigator.userAgent.match(/(iPod|iPhone|iPad)/i)) {
-                     $("#speakbutton").show();
-                 }
+            if(nums>2) toSpeak += ", ";
+            else if(nums==2) toSpeak += " and ";
 
-                 speak();
-             });
-         }
-     });
+            nums--;
+        };
 
+        text += "I think I also see: " + toSpeak;
+
+        log("Synthesizing speech for 4 first objects with Polly:\n    \"" + text + "\"\n");
+
+        var params = {
+            OutputFormat: "mp3",
+            SampleRate: "16000",
+            Text: text,
+            TextType: "text",
+            VoiceId: "Joanna"
+        };
+
+        polly.synthesizeSpeech(params, function(err, data) {
+            if (err) console.log(err, err.stack); // an error occurred
+            else {
+                console.log(data);           // successful response
+                audioCtx.decodeAudioData(data.AudioStream.buffer, function(buffer) {
+                    sound = buffer;
+
+                    if (navigator.userAgent.match(/(iPod|iPhone|iPad)/i)) {
+                        $("#speakbutton").show();
+                    }
+
+                    speak();
+                    resolve();
+                });
+            }
+        });
+    }); // new Promise
  }
 
 function ordinal_suffix_of(i) {
@@ -173,126 +176,128 @@ function ordinal_suffix_of(i) {
  }
 
 
- function detectFaces() {
+ async function detectFaces() {
 
-     log("Detecting faces.\n");
+     return new Promise( (resolve, reject) => {
 
-     var params = {
-         Image: {
-             Bytes: image
-         },
-         Attributes: [
-             'ALL'
-         ]
-     };
-     rekognition.detectFaces(params, function(err, data) {
-         if (err) console.log(err, err.stack); // an error occurred
-         else {
-             console.log(data);           // successful response
+        log("Detecting faces.\n");
 
-             faces = data;
+        var params = {
+            Image: {
+                Bytes: image
+            },
+            Attributes: [
+                'ALL'
+            ]
+        };
+        rekognition.detectFaces(params, function(err, data) {
+            if (err) console.log(err, err.stack); // an error occurred
+            else {
+                console.log(data);           // successful response
 
-             log("Found " + data.FaceDetails.length + " faces.\n");
+                faces = data;
 
-             //var canvas = document.getElementById("canvas");
-             var context2d = canvas.getContext("2d");
+                log("Found " + data.FaceDetails.length + " faces.\n");
 
-             for(var i=0; i<data.FaceDetails.length; i++) {
-                 var face = data.FaceDetails[i];
-                 var box = face.BoundingBox;
+                //var canvas = document.getElementById("canvas");
+                var context2d = canvas.getContext("2d");
 
-                 log("Face " + (i+1) + " attributes:\n");
-                 log("    Age: " + face.AgeRange.Low + "-" + face.AgeRange.High + "\n");
+                for(var i=0; i<data.FaceDetails.length; i++) {
+                    var face = data.FaceDetails[i];
+                    var box = face.BoundingBox;
 
-
-                 if(face["Emotions"]) {
-                     log("    Emotions: ");
-                     for(var j=0; j<face.Emotions.length; j++) {
-                         var emo = face.Emotions[j];
-                         if(j>0) log(", ");
-                         log(emo.Type + " (" + Math.round(emo.Confidence) + "%)");
-                     };
-                     log("\n");
-                 };
-
-                 ["Gender", "Smile", "Eyeglasses", "Beard", "Mustache"].forEach(function(attr) { 
-                     log("    " + attr + ": " + face[attr].Value + " (" + Math.round(face[attr].Confidence) + "%)\n");
-                 });
-
-                 context2d.save();
-                 context2d.strokeStyle = "red";
-                 context2d.lineWidth = Math.ceil(canvas.width/800);
-                 context2d.shadowColor = 'white';
-                 context2d.shadowBlur = context2d.lineWidth*2;
-                 context2d.beginPath();
-                 context2d.moveTo(box.Left * canvas.width, box.Top * canvas.height);
-                 context2d.lineTo((box.Left+box.Width) * canvas.width, box.Top * canvas.height);
-                 context2d.lineTo((box.Left+box.Width) * canvas.width, (box.Top+box.Height) * canvas.height);
-                 context2d.lineTo(box.Left * canvas.width, (box.Top+box.Height) * canvas.height);
-                 context2d.lineTo(box.Left * canvas.width, box.Top * canvas.height);
-                 context2d.stroke();
-
-                 context2d.fillStyle = "red";
-                 var fontSize = 25 * canvas.width/800;
-                 context2d.font =  fontSize + "px Arial";
-                 context2d.fillText((i+1), (box.Left * canvas.width)+2, (box.Top * canvas.height) + fontSize);
-                 context2d.restore();
-             };
-
-            imageTag.src = canvas.toDataURL("image/jpeg");
-
-             //Generate speech
-             generateSpeech();
-         }
-     });
+                    log("Face " + (i+1) + " attributes:\n");
+                    log("    Age: " + face.AgeRange.Low + "-" + face.AgeRange.High + "\n");
 
 
+                    if(face["Emotions"]) {
+                        log("    Emotions: ");
+                        for(var j=0; j<face.Emotions.length; j++) {
+                            var emo = face.Emotions[j];
+                            if(j>0) log(", ");
+                            log(emo.Type + " (" + Math.round(emo.Confidence) + "%)");
+                        };
+                        log("\n");
+                    };
+
+                    ["Gender", "Smile", "Eyeglasses", "Beard", "Mustache"].forEach(function(attr) { 
+                        log("    " + attr + ": " + face[attr].Value + " (" + Math.round(face[attr].Confidence) + "%)\n");
+                    });
+
+                    context2d.save();
+                    context2d.strokeStyle = "red";
+                    context2d.lineWidth = Math.ceil(canvas.width/800);
+                    context2d.shadowColor = 'white';
+                    context2d.shadowBlur = context2d.lineWidth*2;
+                    context2d.beginPath();
+                    context2d.moveTo(box.Left * canvas.width, box.Top * canvas.height);
+                    context2d.lineTo((box.Left+box.Width) * canvas.width, box.Top * canvas.height);
+                    context2d.lineTo((box.Left+box.Width) * canvas.width, (box.Top+box.Height) * canvas.height);
+                    context2d.lineTo(box.Left * canvas.width, (box.Top+box.Height) * canvas.height);
+                    context2d.lineTo(box.Left * canvas.width, box.Top * canvas.height);
+                    context2d.stroke();
+
+                    context2d.fillStyle = "red";
+                    var fontSize = 25 * canvas.width/800;
+                    context2d.font =  fontSize + "px Arial";
+                    context2d.fillText((i+1), (box.Left * canvas.width)+2, (box.Top * canvas.height) + fontSize);
+                    context2d.restore();
+                };
+
+                imageTag.src = canvas.toDataURL("image/jpeg");
+
+                resolve();
+            }
+        });
+    }); // new Promise()
  }
 
 
- function readFile() {
+ async function readFile() {
 
-    console.log('readFile()');
-    const input = $("#input")[0];
-    // console.log(input);
-    // console.log(input.files);
+    return new Promise( (resolve, reject) => {
+        console.log('readFile()');
+        const input = $("#input")[0];
+        // console.log(input);
+        // console.log(input.files);
 
-     if (input.files && input.files[0]) {
+        if (input.files && input.files[0]) {
 
-         var file = input.files[0];
-         var reader = new FileReader();
+            var file = input.files[0];
+            var reader = new FileReader();
 
-         reader.onload = (event) => {
-            var img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
+            reader.onload = (event) => {
+                var img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
 
-                EXIF.getData(img, () => {
+                    EXIF.getData(img, () => {
 
-                    var orientation = EXIF.getTag(this, "Orientation");
-                    console.log("Orientation = " + orientation);
-                    if (orientation == undefined) orientation = 1;
-                    canvas = document.createElement("canvas");
+                        var orientation = EXIF.getTag(this, "Orientation");
+                        console.log("Orientation = " + orientation);
+                        if (orientation == undefined) orientation = 1;
+                        canvas = document.createElement("canvas");
 
-                    drawImage(img, canvas, orientation);
+                        drawImage(img, canvas, orientation);
 
-                    imageTag = $('#img')[0];
-                    imageTag.src = canvas.toDataURL("image/jpeg");
+                        imageTag = $('#img')[0];
+                        imageTag.src = canvas.toDataURL("image/jpeg");
 
-                    // remove image container background
-                    const imageContainer = $('#img-container');
-                    imageContainer.css({'background': ''});
+                        // remove image container background
+                        const imageContainer = $('#img-container');
+                        imageContainer.css({'background': ''});
 
-                    image = toArrayBuffer(canvas.toDataURL("image/jpeg"));
-                    detectLabels();
-                });
+                        image = toArrayBuffer(canvas.toDataURL("image/jpeg"));
+                        resolve();
+                    });
 
+                };
             };
-         };
 
-         log("Reading picture.\n");
-         reader.readAsDataURL( file );
-     }
+            log("Reading picture.\n");
+            reader.readAsDataURL( file );
+        }
+     }); // new Promise()
  }
 
  function drawImage(img, canvas, orientation) {
@@ -317,4 +322,11 @@ function ordinal_suffix_of(i) {
     }
 
     context2d.setTransform(1, 0, 0, 1, 0, 0);
+ }
+
+ async function handle() {
+     await readFile()
+     await detectLabels();
+     await detectFaces();
+     await generateSpeech();
  }
