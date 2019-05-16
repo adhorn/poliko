@@ -88,7 +88,8 @@ function toArrayBuffer(dataUrl) {
         text += "The " + ordinal_suffix_of(i+1) + " face is a ";
         if(face["Emotions"]) {
             // filter the emotion with higher confidence 
-            text += face["Emotions"][0].Type.toLowerCase() + " ";
+            emotion = face["Emotions"].reduce( (ac, cu ) => { if (ac && ac.Confidence < cu.Confidence) { ac = cu; } return ac; } );
+            text += emotion.Type.toLowerCase() + " ";
         }
         if(face["Gender"]) text += face.Gender.Value.toLowerCase() + " ";
         else text += "person ";
@@ -269,7 +270,7 @@ function ordinal_suffix_of(i) {
                 EXIF.getData(img, () => {
 
                     var orientation = EXIF.getTag(this, "Orientation");
-                    console.log(orientation);
+                    console.log("Orientation = " + orientation);
                     if (orientation == undefined) orientation = 1;
                     canvas = document.createElement("canvas");
 
