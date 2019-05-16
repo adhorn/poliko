@@ -15,16 +15,20 @@ function toArrayBuffer(dataUrl) {
 }
 
  function log(text) {
-     document.getElementById('output').value += text
+     const out = $('#output')[0];
+    //  console.log(out);
+     out.value += text
  }
 
  function clearLog(text) {
-     document.getElementById('output').value = "";
+    const out = $('#output')[0];
+    // console.log(out);
+    out.value = "";
  }
 
  AWS.config.region = 'us-east-1'; // Region
  AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-     IdentityPoolId: 'REPLACE_ME',
+     IdentityPoolId: 'us-east-1:5a8e773d-636b-41a8-a34b-a4bb2746624f',
  });
 
  window.AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -82,7 +86,10 @@ function toArrayBuffer(dataUrl) {
         var face = faces.FaceDetails[i];
         
         text += "The " + ordinal_suffix_of(i+1) + " face is a ";
-        if(face["Emotions"]) text += face["Emotions"][0].Type.toLowerCase() + " ";
+        if(face["Emotions"]) {
+            // filter the emotion with higher confidence 
+            text += face["Emotions"][0].Type.toLowerCase() + " ";
+        }
         if(face["Gender"]) text += face.Gender.Value.toLowerCase() + " ";
         else text += "person ";
         if(face["AgeRange"]) text += "between " + face.AgeRange.Low + " and " + face.AgeRange.High + " years old";
@@ -244,43 +251,46 @@ function ordinal_suffix_of(i) {
 
  function readFile() {
 
-     //var canvas = document.getElementById("canvas");
+    console.log('readFile()');
+    const input = $("#input")[0];
+    // console.log(input);
+    // console.log(input.files);
 
-     clearLog();
+     if (input.files && input.files[0]) {
 
-     if (this.files && this.files[0]) {
+         var file = input.files[0];
+         var reader = new FileReader();
 
-         var file = this.files[0];
-
-         var FR = new FileReader();
-
-         FR.addEventListener("load", function(e) {
+         reader.onload = (event) => {
             var img = new Image();
-            img.src = e.target.result;
-            img.onload = function() {
+            img.src = event.target.result;
+            img.onload = () => {
 
-                var exif = EXIF.getData(img, function() {
+                EXIF.getData(img, () => {
 
                     var orientation = EXIF.getTag(this, "Orientation");
-                    //drawImage(img, canvas, orientation);
-
+                    console.log(orientation);
+                    if (orientation == undefined) orientation = 1;
                     canvas = document.createElement("canvas");
-                    //hirezCanvas.width = 800;
 
                     drawImage(img, canvas, orientation);
 
-                    imageTag = document.getElementById("img");
+                    imageTag = $('#img')[0];
                     imageTag.src = canvas.toDataURL("image/jpeg");
+
+                    // remove image container background
+                    const imageContainer = $('#img-container');
+                    imageContainer.css({'background': ''});
 
                     image = toArrayBuffer(canvas.toDataURL("image/jpeg"));
                     detectLabels();
                 });
 
             };
-         });
+         };
 
          log("Reading picture.\n");
-         FR.readAsDataURL( file );
+         reader.readAsDataURL( file );
      }
  }
 
