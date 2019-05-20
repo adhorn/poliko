@@ -257,6 +257,7 @@ async function detectFaces(image) {
 
 
 // Function to check orientation of image from EXIF metadatas and draw canvas
+// https://medium.com/wassa/handle-image-rotation-on-mobile-266b7bd5a1e6
 async function orientation(img, canvas) {
 
     return new Promise((resolve, reject) => {
@@ -325,12 +326,12 @@ async function orientation(img, canvas) {
  * Then do a preview by updating an img source
  * Finally check EXIF orientation drawing it into a canvas
  */
-async function readFile() {
+async function readFile(input) {
 
     return new Promise((resolve, reject) => {
 
         console.log('readFile()');
-        const input = $("#input")[0];
+        // const input = $("#input")[0];
 
         // If file is loaded, create new FileReader
         if (input.files && input.files[0]) {
@@ -380,8 +381,8 @@ async function readFile() {
 // 
 // Main entry point
 //
-async function handle() {
-    let image = await readFile()
+async function handle(input) {
+    let image = await readFile(input)
     let labels = await detectLabels(image);
     let faces = await detectFaces(image);
     await generateSpeech(faces, labels);
