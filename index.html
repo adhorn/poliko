@@ -7,8 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Poliko</title>
 
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.0/css/bootstrap.min.css" integrity="sha384-PDle/QlgIONtM1aqA2Qemk5gPOE7wFq8+Em+G/hmo5Iq0CCmYZLv3fVRDJ4MMwEA"
-        crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.0/css/bootstrap.min.css"
+        integrity="sha384-PDle/QlgIONtM1aqA2Qemk5gPOE7wFq8+Em+G/hmo5Iq0CCmYZLv3fVRDJ4MMwEA" crossorigin="anonymous">
 
 </head>
 
@@ -22,48 +22,36 @@
             </div>
         </div>
 
-        <div class="container my-3">
-            <div class="file btn btn-primary" style="position: relative; overflow: hidden;">
-                Take Picture
-                <input id="input" type="file" accept="image/*" style="position: absolute; opacity: 0; right: 0; top: 0;"
-                    onchange="handle(this)">
-            </div>
-            <!-- <button id="speakbutton" class="btn btn-primary mx-3" disabled onclick="speak();">Speak</button> -->
-        </div>
+        <div class="row">
+            <div class="col-md-6">
 
-        <div class="container-fluid">
-            <div class="row mb-3">
-                <div id="img-container" class="col-sm p-4 m-3" style="background: lightgray;">
-                    
-                    <canvas id="canvas">
-                        <img id="img" class="img-responsive" crossorigin="anonymous" src="" style="max-width: 100%; height: auto;">
-                    </canvas>
-                </div>
-                <div class="col-sm">
-                    Output log :
-                    <textarea id="output" rows="15" class="form-control"></textarea>
-                </div>
+                <label class="btn btn-primary btn-block ">
+                    Take Picture
+                    <input id="inp" type="file" accept="image/*" style="display: none;" />
+                </label>
+                <br />
+                <canvas id="canvas" style="width: 100%;" class="img-responsive inline-block"></canvas>
+            </div>
+            <div class="col-md-6">
+                <button id="speakButton" class="btn btn-primary btn-block" disabled
+                    onclick="speak();">Speak</button>
+                <br />
+                <textarea id="output" rows="25" class="form-control"></textarea>
             </div>
         </div>
-    </div>
 
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
-        crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-        crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.0/js/bootstrap.min.js" integrity="sha384-7aThvCh9TypR7fIc2HV4O/nFMVCBwyIUKL8XCtKE+8xgCgl/PQGuFsvShjr74PBp"
-        crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+            crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
 
-    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.283.1.min.js" type="text/javascript"></script>
 
-    <script src="exif.js" type="text/javascript"></script>
-    <script src="ai.js" type="text/javascript"></script>
+        <script src="https://sdk.amazonaws.com/js/aws-sdk-2.462.0.min.js" type="text/javascript"></script>
+        <script src="exif.js" type="text/javascript"></script>
+        <script src="ai.js" type="text/javascript"></script>
 
-    <script>
-        $(document).ready( () => {
-            $("#output")[0].value = '';
-        });
-    </script>
 </body>
 
 </html>

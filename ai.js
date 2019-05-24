@@ -1,57 +1,3 @@
-//
-// Utility functions 
-//
-
-function b64Decode(data) {
-    var binStr = atob(data),
-        len = binStr.length,
-        arr = new Uint8Array(len);
-
-    for (var i = 0; i < len; i++) {
-        arr[i] = binStr.charCodeAt(i);
-    }
-
-    return arr;
-}
-
-function toArrayBuffer(dataUrl) {
-    return b64Decode(dataUrl.split(',')[1]).buffer;
-}
-
-function log(text) {
-    const out = $('#output')[0];
-    //  console.log(out);
-    out.value += text
-}
-
-function clearLog(text) {
-    const out = $('#output')[0];
-    // console.log(out);
-    out.value = "";
-}
-
-function ordinal_suffix_of(i) {
-    var j = i % 10,
-        k = i % 100;
-    if (j == 1 && k != 11) {
-        return i + "st";
-    }
-    if (j == 2 && k != 12) {
-        return i + "nd";
-    }
-    if (j == 3 && k != 13) {
-        return i + "rd";
-    }
-    return i + "th";
-}
-
-function speak(audioCtx, sound) {
-    var source = audioCtx.createBufferSource();
-    source.buffer = sound;
-    source.connect(audioCtx.destination);
-    source.start(0);
-}
-
 // 
 // globals 
 //
@@ -60,14 +6,46 @@ AWS.config.credentials = new AWS.CognitoIdentityCredentials({
     IdentityPoolId: 'us-east-1:5a8e773d-636b-41a8-a34b-a4bb2746624f',
 });
 
-window.AudioContext = window.AudioContext || window.webkitAudioContext;
-
 var polly = new AWS.Polly();
 var rekognition = new AWS.Rekognition();
 
+var buffer; // the audio bits and bytes 
+
+// https://stackoverflow.com/questions/29373563/audiocontext-on-safari
+let AudioContext = window.AudioContext // Default
+|| window.webkitAudioContext // Safari and old versions of Chrome
+|| false; 
+
+if ( ! AudioContext) {
+
+    // Web Audio API is not supported
+    // Alert the user
+    alert("Sorry, but the Web Audio API is not supported by your browser. Please, consider upgrading to the latest version or downloading Google Chrome or Mozilla Firefox");
+
+}
+
+$(document).ready(() => {
+
+    // clean log 
+    $("#output")[0].value = '';
+
+    $('#inp')[0].onchange = async function (e) {
+        // clean log 
+        $("#output")[0].value = '';
+
+        let canvas = document.getElementById('canvas');
+        let image  = await loadImageInCanvas(this.files[0], canvas);
+        let labels = await detectLabels(image);
+        let faces  = await detectFaces(image, canvas);
+        await generateSpeech(faces, labels);
+    }
+});
+
+
 //
-// 
+// AI Code
 //
+
 async function detectLabels(image) {
 
     return new Promise((resolve, reject) => {
@@ -158,20 +136,37 @@ async function generateSpeech(faces, labels) {
         polly.synthesizeSpeech(params, function (err, data) {
             if (err) console.log(err, err.stack); // an error occurred
             else {
-                console.log(data);           // successful response
-                let audioCtx = new AudioContext();
-                audioCtx.decodeAudioData(data.AudioStream.buffer, function (buffer) {
+                console.log(data);  // successful response
 
-                    if (navigator.userAgent.match(/(iPod|iPhone|iPad)/i)) {
-                        $("#speakbutton").show();
-                    }
 
-                    speak(audioCtx, buffer);
+                let ctx = new AudioContext();
+                ctx.decodeAudioData(data.AudioStream.buffer, (buff) => {
+
+                    console.log("Audio data decoded");
+
+                    // enable the speak button, allowing customers to repeat the message (or play it on iOS)
+                    $('#speakButton').prop('disabled', false);
+
+                    //save audio in a global variable, allowing to replay 
+                    buffer = buff;
+                    speak();
+
                     resolve();
-                });
+                });    
+            
             }
         });
     }); // new Promise
+}
+
+// play sound stored in the global audio 'buffer' variable
+function speak() {
+    let ctx = new AudioContext();
+    let source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(0);
+
 }
 
 async function detectFaces(image) {
@@ -196,9 +191,16 @@ async function detectFaces(image) {
                 console.log(data);           // successful response
 
                 log("Found " + data.FaceDetails.length + " face(s).\n");
-
-                var canvas = $("#canvas").get(0);
+                
                 var context2d = canvas.getContext("2d");
+                context2d.strokeStyle = "red";
+                context2d.lineWidth = Math.ceil(canvas.width / 800);
+                context2d.shadowColor = 'white';
+                context2d.shadowBlur = context2d.lineWidth * 2;
+
+                context2d.fillStyle = "red";
+                var fontSize = 25 * canvas.width / 800;
+                context2d.font = fontSize + "px Arial";
 
                 for (var i = 0; i < data.FaceDetails.length; i++) {
                     var face = data.FaceDetails[i];
@@ -222,11 +224,6 @@ async function detectFaces(image) {
                         log("    " + attr + ": " + face[attr].Value + " (" + Math.round(face[attr].Confidence) + "%)\n");
                     });
 
-                    context2d.save();
-                    context2d.strokeStyle = "red";
-                    context2d.lineWidth = Math.ceil(canvas.width / 800);
-                    context2d.shadowColor = 'white';
-                    context2d.shadowBlur = context2d.lineWidth * 2;
                     context2d.beginPath();
                     context2d.moveTo(box.Left * canvas.width, box.Top * canvas.height);
                     context2d.lineTo((box.Left + box.Width) * canvas.width, box.Top * canvas.height);
@@ -235,15 +232,8 @@ async function detectFaces(image) {
                     context2d.lineTo(box.Left * canvas.width, box.Top * canvas.height);
                     context2d.stroke();
 
-                    context2d.fillStyle = "red";
-                    var fontSize = 25 * canvas.width / 800;
-                    context2d.font = fontSize + "px Arial";
                     context2d.fillText((i + 1), (box.Left * canvas.width) + 2, (box.Top * canvas.height) + fontSize);
-                    context2d.restore();
                 };
-
-                let imageTag = $('#img')[0];
-                imageTag.src = canvas.toDataURL("image/jpeg");
 
                 resolve(data);
             }
@@ -252,138 +242,138 @@ async function detectFaces(image) {
 }
 
 //
-// image manipulations 
+// image loading 
 // 
 
-
-// Function to check orientation of image from EXIF metadatas and draw canvas
 // https://medium.com/wassa/handle-image-rotation-on-mobile-266b7bd5a1e6
-async function orientation(img, canvas) {
+
+async function loadImageInCanvas(file, canvas) {
 
     return new Promise((resolve, reject) => {
 
-        // Set variables
-        var ctx = canvas.getContext("2d");
-        var exifOrientation = '';
-        var width = img.width,
-            height = img.height;
+        var reader = new FileReader();
+        reader.onloadend = function (e) {
 
-        console.log(width);
-        console.log(height);
+            // set the image in an <img> tag to work with EXIF below
+            var imageTag = $("<img />", {
+                src: e.target.result,
+                crossOrigin: "Anonymous"
 
-        // Check orientation in EXIF metadatas
-        EXIF.getData(img, function () {
-            var allMetaData = EXIF.getAllTags(this);
-            exifOrientation = allMetaData.Orientation;
-            console.log('Exif orientation: ' + exifOrientation);
+            }).on("load", async () => {
 
-            // set proper canvas dimensions before transform & export
-            if (jQuery.inArray(exifOrientation, [5, 6, 7, 8]) > -1) {
-                canvas.width = height;
-                canvas.height = width;
-            } else {
-                canvas.width = width;
-                canvas.height = height;
-            }
+                let img = imageTag[0];
 
-            // transform context before drawing image
-            switch (exifOrientation) {
-                case 2:
-                    ctx.transform(-1, 0, 0, 1, width, 0);
-                    break;
-                case 3:
-                    ctx.transform(-1, 0, 0, -1, width, height);
-                    break;
-                case 4:
-                    ctx.transform(1, 0, 0, -1, 0, height);
-                    break;
-                case 5:
-                    ctx.transform(0, 1, 1, 0, 0, 0);
-                    break;
-                case 6:
-                    ctx.transform(0, 1, -1, 0, height, 0);
-                    break;
-                case 7:
-                    ctx.transform(0, -1, -1, 0, height, width);
-                    break;
-                case 8:
-                    ctx.transform(0, -1, 1, 0, 0, width);
-                    break;
-                default:
-                    ctx.transform(1, 0, 0, 1, 0, 0);
-            }
+                // Set variables
+                var width = img.width,
+                    height = img.height;
 
-            // Draw img into canvas
-            ctx.drawImage(img, 0, 0, width, height);
+                console.log(width);
+                console.log(height);
 
-            resolve();
-        });
-    }); // new Promise()
-}
+                // Check orientation in EXIF metadatas
+                EXIF.getData(img, () => {
+                    console.log(img);
+                    let exif = EXIF.getAllTags(img);
+                    console.log('Exif');
+                    console.log(exif);
 
-/**
- * Create a filereader from input selected files
- * Then do a preview by updating an img source
- * Finally check EXIF orientation drawing it into a canvas
- */
-async function readFile(input) {
+                    // set proper canvas dimensions before transform & export
+                    if (exif && jQuery.inArray(exif.Orientation, [5, 6, 7, 8]) > -1) {
+                        console.log("portrait");
+                        canvas.width = height;
+                        canvas.height = width;
+                    } else {
+                        console.log("landscape or unknown");
+                        canvas.width = width;
+                        canvas.height = height;
+                    }
 
-    return new Promise((resolve, reject) => {
+                    // transform context before drawing image
+                    var ctx = canvas.getContext("2d");
+                    switch (exif.Orientation) {
+                        case 2:
+                            ctx.transform(-1, 0, 0, 1, width, 0);
+                            break;
+                        case 3:
+                            ctx.transform(-1, 0, 0, -1, width, height);
+                            break;
+                        case 4:
+                            ctx.transform(1, 0, 0, -1, 0, height);
+                            break;
+                        case 5:
+                            ctx.transform(0, 1, 1, 0, 0, 0);
+                            break;
+                        case 6:
+                            ctx.transform(0, 1, -1, 0, height, 0);
+                            break;
+                        case 7:
+                            ctx.transform(0, -1, -1, 0, height, width);
+                            break;
+                        case 8:
+                            ctx.transform(0, -1, 1, 0, 0, width);
+                            break;
+                        default:
+                            // no transformation
+                            ctx.transform(1, 0, 0, 1, 0, 0);
+                    }
 
-        console.log('readFile()');
-        // const input = $("#input")[0];
+                    // Draw img into canvas
+                    ctx.drawImage(img, 0, 0, width, height);
 
-        // If file is loaded, create new FileReader
-        if (input.files && input.files[0]) {
+                    //convert image to byte array, the format expected by Rekognition
+                    let image = toArrayBuffer(canvas.toDataURL("image/jpeg"));
 
-            // Create a FileReader
-            var reader = new FileReader();
-
-            // Set onloadend function on reader
-            reader.onloadend = function (e) {
-
-                // Update an image tag with loaded image source
-                $('#img').attr('src', e.target.result);
-
-                // Use EXIF library to handle the loaded image exif orientation
-                EXIF.getData(input.files[0], async function () {
-
-                    // Fetch image tag
-                    var img = $("#img").get(0);
-                    
-                    // Fetch canvas tag
-                    var canvas = $("#canvas").get(0);
-
-                    // run orientation on img in canvas
-                    await orientation(img, canvas);
-
-                    // insert the canvas on the image (not necessary to draw the image)
-                    // but we are going to reuse the canvas later to draw the detection box
-                    // let imageTag = $('#img')[0];
-                    // imageTag.src = canvas.toDataURL("image/jpeg");
-
-                    // remove image container background
-                    const imageContainer = $('#img-container');
-                    imageContainer.css({ 'background': '' });
-
-                    image = toArrayBuffer(canvas.toDataURL("image/jpeg"));
-                    resolve(image);
+                    resolve( image  );
                 });
-            };
-
-            // Trigger reader to read the file input
-            reader.readAsDataURL(input.files[0]);
-        }
-    }); // new Promise()
-
+            });
+        };
+        reader.readAsDataURL(file);
+    });
 }
 
-// 
-// Main entry point
 //
-async function handle(input) {
-    let image = await readFile(input)
-    let labels = await detectLabels(image);
-    let faces = await detectFaces(image);
-    await generateSpeech(faces, labels);
+// Utility functions 
+//
+
+function b64Decode(data) {
+    var binStr = atob(data),
+        len = binStr.length,
+        arr = new Uint8Array(len);
+
+    for (var i = 0; i < len; i++) {
+        arr[i] = binStr.charCodeAt(i);
+    }
+
+    return arr;
+}
+
+function toArrayBuffer(dataUrl) {
+    return b64Decode(dataUrl.split(',')[1]).buffer;
+}
+
+function log(text) {
+    const out = $('#output')[0];
+    //  console.log(out);
+    out.value += text
+}
+
+function clearLog(text) {
+    const out = $('#output')[0];
+    // console.log(out);
+    out.value = "";
+}
+
+function ordinal_suffix_of(i) {
+    var j = i % 10,
+        k = i % 100;
+    if (j == 1 && k != 11) {
+        return i + "st";
+    }
+    if (j == 2 && k != 12) {
+        return i + "nd";
+    }
+    if (j == 3 && k != 13) {
+        return i + "rd";
+    }
+    return i + "th";
 }
