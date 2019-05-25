@@ -317,12 +317,15 @@ async function loadImageInCanvas(file, canvas) {
                             ctx.transform(1, 0, 0, 1, 0, 0);
                     }
 
-                    // remove image container background
+                    // remove image container background and reset height to ensure the image will be displayed with correct proportions
                     const imageContainer = $('#canvas');
-                    imageContainer.css({ 'background': '' });
+                    imageContainer.css({ 'background': '', 'height': '' });
 
                     // Draw img into canvas
                     ctx.drawImage(img, 0, 0, width, height);
+
+                    //reset the context before sending to Rekognition (otherwise face's boundaries will be mismatched)
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
 
                     //convert image to byte array, the format expected by Rekognition
                     let image = toArrayBuffer(canvas.toDataURL("image/jpeg"));
