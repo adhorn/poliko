@@ -13,10 +13,10 @@ var buffer; // the audio bits and bytes
 
 // https://stackoverflow.com/questions/29373563/audiocontext-on-safari
 let AudioContext = window.AudioContext // Default
-|| window.webkitAudioContext // Safari and old versions of Chrome
-|| false; 
+    || window.webkitAudioContext // Safari and old versions of Chrome
+    || false;
 
-if ( ! AudioContext) {
+if (!AudioContext) {
 
     // Web Audio API is not supported
     // Alert the user
@@ -34,9 +34,9 @@ $(document).ready(() => {
         $("#output")[0].value = '';
 
         let canvas = document.getElementById('canvas');
-        let image  = await loadImageInCanvas(this.files[0], canvas);
+        let image = await loadImageInCanvas(this.files[0], canvas);
         let labels = await detectLabels(image);
-        let faces  = await detectFaces(image, canvas);
+        let faces = await detectFaces(image, canvas);
         await generateSpeech(faces, labels);
     }
 });
@@ -152,8 +152,8 @@ async function generateSpeech(faces, labels) {
                     speak();
 
                     resolve();
-                });    
-            
+                });
+
             }
         });
     }); // new Promise
@@ -191,7 +191,7 @@ async function detectFaces(image) {
                 console.log(data);           // successful response
 
                 log("Found " + data.FaceDetails.length + " face(s).\n");
-                
+
                 var context2d = canvas.getContext("2d");
                 context2d.strokeStyle = "red";
                 context2d.lineWidth = Math.ceil(canvas.width / 800);
@@ -317,13 +317,17 @@ async function loadImageInCanvas(file, canvas) {
                             ctx.transform(1, 0, 0, 1, 0, 0);
                     }
 
+                    // remove image container background
+                    const imageContainer = $('#canvas');
+                    imageContainer.css({ 'background': '' });
+
                     // Draw img into canvas
                     ctx.drawImage(img, 0, 0, width, height);
 
                     //convert image to byte array, the format expected by Rekognition
                     let image = toArrayBuffer(canvas.toDataURL("image/jpeg"));
 
-                    resolve( image  );
+                    resolve(image);
                 });
             });
         };
