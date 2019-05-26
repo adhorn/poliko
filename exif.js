@@ -343,17 +343,25 @@
 
     function getImageData(img, callback) {
         function handleBinaryFile(binFile) {
+            console.log("EXIF - Binary file handling");
+            console.log(binFile);
             var data = findEXIFinJPEG(binFile);
+            console.log("EXIF - EXIF in JPEG");
+            console.log(data);
             var iptcdata = findIPTCinJPEG(binFile);
+            console.log("EXIF - IPTC in JPEG");
+            console.log(iptcdata);
             img.exifdata = data || {};
             img.iptcdata = iptcdata || {};
             if (callback) {
-                callback.call(img);
+                console.log('Calling callback');
+                callback.call( img );
             }
         }
 
         if (img.src) {
             if (/^data\:/i.test(img.src)) { // Data URI
+                console.log('EXIF : base64 data detected');
                 var arrayBuffer = base64ToArrayBuffer(img.src);
                 handleBinaryFile(arrayBuffer);
 
@@ -744,6 +752,7 @@
         if ((img instanceof Image || img instanceof HTMLImageElement) && !img.complete) return false;
 
         if (!imageHasData(img)) {
+            console.log('EXIF - going to get image data');
             getImageData(img, callback);
         } else {
             if (callback) {
