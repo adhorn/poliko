@@ -3,7 +3,7 @@
 //
 AWS.config.region = 'us-east-1'; // Region
 AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-    IdentityPoolId: 'us-east-1:5a8e773d-636b-41a8-a34b-a4bb2746624f',
+    IdentityPoolId: 'REPLACE_ME',
 });
 
 var polly = new AWS.Polly();
